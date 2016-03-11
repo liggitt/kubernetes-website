@@ -72,8 +72,13 @@ enabling this plug-in.
 
 ### ServiceAccount
 
-This plug-in implements automation for [serviceAccounts](/docs/user-guide/service-accounts).
+This plug-in implements automation for [ServiceAccounts](/docs/user-guide/service-accounts).
 We strongly recommend using this plug-in if you intend to make use of Kubernetes `ServiceAccount` objects.
+This plug-in observes pod creation requests:
+* If the pod does not have a service account specified, it is assigned the service account named `default`
+* The service account referenced by the pod is validated
+* A `Secret` containing an API token for the service account is located and automatically mounted into the pod.
+
 
 ### SecurityContextDeny
 

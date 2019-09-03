@@ -568,7 +568,7 @@ Additionally, the following restrictions are applied to the schema:
 
 These fields can only be set with specific features enabled:
 
-- `default`: the `CustomResourceDefaulting` feature gate must be enabled, compare [Validation Schema Defaulting](/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/#defaulting).
+- `default`: can be set for `apiextensions.k8s.io/v1` CustomResourceDefinitions. Defaulting is in beta since 1.16 and requires the `CustomResourceDefaulting` feature gate to be enabled (which is the case automatically for many clusters for beta features). Compare [Validation Schema Defaulting](/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/#defaulting).
 
 Note: compare with [structural schemas](#specifying-a-structural-schema) for further restriction required for certain CustomResourceDefinition features.
 
@@ -685,18 +685,16 @@ crontab "my-new-cron-object" created
 
 ### Defaulting
 
-{{< feature-state state="alpha" for_kubernetes_version="1.15" >}}
+{{< feature-state state="beta" for_kubernetes_version="1.16" >}}
 
 {{< note >}}
-Defaulting is available as alpha since 1.15. It is disabled by default and can be enabled via the `CustomResourceDefaulting` feature gate. Please refer to the [feature gate](/docs/reference/command-line-tools-reference/feature-gates/) documentation for more information.
-
-Defaulting also requires a structural schema and pruning. 
+Defaulting is available as beta since 1.16 in `apiextensions.k8s.io/v1` CustomResourceDefinitions. It is enabled by default for most clusters (feature gate `CustomResourceDefaulting`, refer to the [feature gate](/docs/reference/command-line-tools-reference/feature-gates/) documentation).
 {{< /note >}}
 
 Defaulting allows to specify default values in the [OpenAPI v3 validation schema](#validation):
 
 ```yaml
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: crontabs.stable.example.com
@@ -706,7 +704,6 @@ spec:
     - name: v1
       served: true
       storage: true
-  version: v1
   scope: Namespaced
   names:
     plural: crontabs
@@ -714,7 +711,6 @@ spec:
     kind: CronTab
     shortNames:
     - ct
-  preserveUnknownFields: false
   validation:
    # openAPIV3Schema is the schema for validating custom objects.
     openAPIV3Schema:
@@ -762,11 +758,15 @@ spec:
 
 Note that defaulting happens on the object
  
-* in the request to the API server using the request version defaults
-* when reading from etcd using the storage version defaults
+* in the request to the API server using the request version defaults,
+* when reading from etcd using the storage version defaults,
 * after mutating admission plugins with non-empty patches using the admission webhook object version defaults.
 
-Note that defaults applied when reading data from etcd are not automatically written back to etcd. An update request via the API is required to persist those defaults back into etcd.
+Defaults applied when reading data from etcd are not automatically written back to etcd. An update request via the API is required to persist those defaults back into etcd.
+
+Default values must be pruned (with the exception of defaults for `metadata` fields) and must validate against a provided schema.
+
+Default values for `metadata` fields of `x-kubernetes-embedded-resources: true` nodes (or parts of a default value covering `metadata`) are not pruned during CustomResourceDefinition creation, but through the pruning step during handling of requests.
 
 ### Publish Validation Schema in OpenAPI v2
 

@@ -66,9 +66,26 @@ spec:
     served: true
     # One and only one version must be marked as the storage version.
     storage: true
+    # A schema is required
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          host:
+            type: string
+          port:
+            type: string
   - name: v1
     served: true
     storage: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          host:
+            type: string
+          port:
+            type: string
   # The conversion section is introduced in Kubernetes 1.13+ with a default value of
   # None conversion (strategy sub-field set to None).
   conversion:
@@ -89,8 +106,9 @@ spec:
     - ct
 ```
 {{% /tab %}}
-{{% tab name="admission.k8s.io/v1beta1" %}}
+{{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
+# Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -109,6 +127,14 @@ spec:
   - name: v1
     served: true
     storage: false
+  validation:
+    openAPIV3Schema:
+      type: object
+      properties:
+        host:
+          type: string
+        port:
+          type: string
   # The conversion section is introduced in Kubernetes 1.13+ with a default value of
   # None conversion (strategy sub-field set to None).
   conversion:
@@ -212,13 +238,13 @@ To cover all of these cases and to optimize conversion by the API server, the co
 ### Write a conversion webhook server
 
 Please refer to the implementation of the [custom resource conversion webhook
-server](https://github.com/kubernetes/kubernetes/tree/v1.13.0/test/images/crd-conversion-webhook/main.go)
+server](https://github.com/kubernetes/kubernetes/tree/v1.15.0/test/images/crd-conversion-webhook/main.go)
 that is validated in a Kubernetes e2e test. The webhook handles the
 `ConversionReview` requests sent by the API servers, and sends back conversion
 results wrapped in `ConversionResponse`. Note that the request
 contains a list of custom resources that need to be converted independently without
 changing the order of objects.
-The example server is organized in a way to be reused for other conversions. Most of the common code are located in the [framework file](https://github.com/kubernetes/kubernetes/tree/v1.14.0/test/images/crd-conversion-webhook/converter/framework.go) that leaves only [one function](https://github.com/kubernetes/kubernetes/blob/v1.13.0/test/images/crd-conversion-webhook/converter/example_converter.go#L29-L80) to be implemented for different conversions.
+The example server is organized in a way to be reused for other conversions. Most of the common code are located in the [framework file](https://github.com/kubernetes/kubernetes/tree/v1.15.0/test/images/crd-conversion-webhook/converter/framework.go) that leaves only [one function](https://github.com/kubernetes/kubernetes/blob/v1.15.0/test/images/crd-conversion-webhook/converter/example_converter.go#L29-L80) to be implemented for different conversions.
 
 {{< note >}}
 The example conversion webhook server leaves the `ClientAuth` field
@@ -273,6 +299,7 @@ spec:
     # schema is defined.
     schema:
       openAPIV3Schema:
+        type: object
         properties:
           hostPort:
             type: string
@@ -281,6 +308,7 @@ spec:
     storage: false
     schema:
       openAPIV3Schema:
+        type: object
         properties:
           host:
             type: string
@@ -289,14 +317,18 @@ spec:
   conversion:
     # a Webhook strategy instruct API server to call an external webhook for any conversion between custom resources.
     strategy: Webhook
-    # webhookClientConfig is required when strategy is `Webhook` and it configure the webhook endpoint to be
-    # called by API server.
-    webhookClientConfig:
-      service:
-        namespace: default
-        name: example-conversion-webhook-server
-        path: /crdconvert
-      caBundle: <pem encoded ca cert that signs the server cert used by the webhook>
+    # webhook is required when strategy is `Webhook` and it configures the webhook endpoint to be called by API server.
+    webhook:
+      # conversionReviewVersions indicates what ConversionReview versions are understood/preferred by the webhook.
+      # The first version in the list understood by the API server is sent to the webhook.
+      # The webhook must respond with a ConversionReview object in the same version it received.
+      conversionReviewVersions: ["v1","v1beta1"]
+      clientConfig:
+        service:
+          namespace: default
+          name: example-conversion-webhook-server
+          path: /crdconvert
+        caBundle: "Ci0tLS0tQk...<base64-encoded PEM bundle>...tLS0K"
   # either Namespaced or Cluster
   scope: Namespaced
   names:
@@ -313,6 +345,7 @@ spec:
 {{% /tab %}}
 {{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
+# Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -321,6 +354,8 @@ metadata:
 spec:
   # group name to use for REST API: /apis/<group>/<version>
   group: example.com
+  # prunes object fields that are not specified in OpenAPI schemas below.
+  preserveUnknownFields: false
   # list of versions supported by this CustomResourceDefinition
   versions:
   - name: v1beta1
@@ -332,6 +367,7 @@ spec:
     # schema is defined.
     schema:
       openAPIV3Schema:
+        type: object
         properties:
           hostPort:
             type: string
@@ -340,6 +376,7 @@ spec:
     storage: false
     schema:
       openAPIV3Schema:
+        type: object
         properties:
           host:
             type: string
@@ -348,14 +385,13 @@ spec:
   conversion:
     # a Webhook strategy instruct API server to call an external webhook for any conversion between custom resources.
     strategy: Webhook
-    # webhookClientConfig is required when strategy is `Webhook` and it configure the webhook endpoint to be
-    # called by API server.
+    # webhookClientConfig is required when strategy is `Webhook` and it configures the webhook endpoint to be called by API server.
     webhookClientConfig:
       service:
         namespace: default
         name: example-conversion-webhook-server
         path: /crdconvert
-      caBundle: <pem encoded ca cert that signs the server cert used by the webhook>
+      caBundle: "Ci0tLS0tQk...<base64-encoded PEM bundle>...tLS0K"
   # either Namespaced or Cluster
   scope: Namespaced
   names:
@@ -425,13 +461,15 @@ spec:
   ...
   conversion:
     strategy: Webhook
-    webhookClientConfig:
-      url: "https://my-webhook.example.com:9443/my-webhook-path"
+    webhook:
+      clientConfig:
+        url: "https://my-webhook.example.com:9443/my-webhook-path"
 ...
 ```
 {{% /tab %}}
 {{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
+# Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 ...
@@ -467,18 +505,20 @@ spec:
   ...
   conversion:
     strategy: Webhook
-    webhookClientConfig:
-      service:
-        namespace: my-service-namespace
-        name: my-service-name
-        path: /my-path
-        port: 1234
-      caBundle: "Ci0tLS0tQk...<base64-encoded PEM bundle>...tLS0K"
+    webhook:
+      clientConfig:
+        service:
+          namespace: my-service-namespace
+          name: my-service-name
+          path: /my-path
+          port: 1234
+        caBundle: "Ci0tLS0tQk...<base64-encoded PEM bundle>...tLS0K"
 ...
 ```
 {{% /tab %}}
 {{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
+# Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 ...

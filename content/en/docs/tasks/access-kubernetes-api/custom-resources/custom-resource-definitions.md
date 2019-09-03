@@ -86,6 +86,7 @@ spec:
 {{% /tab %}}
 {{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
+# Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -678,6 +679,7 @@ spec:
 {{% /tab %}}
 {{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
+# Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -915,22 +917,36 @@ columns.
         - name: v1
           served: true
           storage: true
+          schema:
+            openAPIV3Schema:
+              type: object
+              properties:
+                spec:
+                  type: object
+                  properties:
+                    cronSpec:
+                      type: string
+                    image:
+                      type: string
+                    replicas:
+                      type: integer
           additionalPrinterColumns:
           - name: Spec
             type: string
             description: The cron spec defining the interval a CronJob is run
-            JSONPath: .spec.cronSpec
+            jsonPath: .spec.cronSpec
           - name: Replicas
             type: integer
             description: The number of jobs launched by the CronJob
-            JSONPath: .spec.replicas
+            jsonPath: .spec.replicas
           - name: Age
             type: date
-            JSONPath: .metadata.creationTimestamp
+            jsonPath: .metadata.creationTimestamp
       ```
       {{% /tab %}}
       {{% tab name="apiextensions.k8s.io/v1beta1" %}}
       ```yaml
+      # Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
       apiVersion: apiextensions.k8s.io/v1beta1
       kind: CustomResourceDefinition
       metadata:
@@ -945,6 +961,19 @@ columns.
           kind: CronTab
           shortNames:
           - ct
+        validation:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  cronSpec:
+                    type: string
+                  image:
+                    type: string
+                  replicas:
+                    type: integer
         additionalPrinterColumns:
         - name: Spec
           type: string
@@ -1116,6 +1145,26 @@ spec:
     - name: v1
       served: true
       storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cronSpec:
+                  type: string
+                image:
+                  type: string
+                replicas:
+                  type: integer
+            status:
+              type: object
+              properties:
+                replicas:
+                  type: integer
+                labelSelector:
+                  type: string
       # subresources describes the subresources for custom resources.
       subresources:
         # status enables the status subresource.
@@ -1139,6 +1188,7 @@ spec:
 {{% /tab %}}
 {{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
+# Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -1156,6 +1206,26 @@ spec:
     kind: CronTab
     shortNames:
     - ct
+  validation:
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          type: object
+          properties:
+            cronSpec:
+              type: string
+            image:
+              type: string
+            replicas:
+              type: integer
+        status:
+          type: object
+          properties:
+            replicas:
+              type: integer
+            labelSelector:
+              type: string
   # subresources describes the subresources for custom resources.
   subresources:
     # status enables the status subresource.
@@ -1249,6 +1319,19 @@ spec:
     - name: v1
       served: true
       storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cronSpec:
+                  type: string
+                image:
+                  type: string
+                replicas:
+                  type: integer
   scope: Namespaced
   names:
     plural: crontabs
@@ -1263,6 +1346,7 @@ spec:
 {{% /tab %}}
 {{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
+# Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -1273,6 +1357,19 @@ spec:
     - name: v1
       served: true
       storage: true
+  validation:
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          type: object
+          properties:
+            cronSpec:
+              type: string
+            image:
+              type: string
+            replicas:
+              type: integer
   scope: Namespaced
   names:
     plural: crontabs

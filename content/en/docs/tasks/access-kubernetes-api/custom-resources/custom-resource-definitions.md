@@ -368,7 +368,7 @@ Structural schemas are a requirement for `apiextensions.k8s.io/v1`, and disables
 
 CustomResourceDefinitions traditionally store any (possibly validated) JSON as is in etcd. This means that unspecified fields (if there is a [OpenAPI v3.0 validation schema](/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/#validation) at all) are persisted. This is in contrast to native Kubernetes resources like e.g. a pod where unknown fields are dropped before being persisted to etcd. We call this "pruning" of unknown fields.
 
-{{< tabs name="ValidatingWebhookConfiguration_pruning" >}}
+{{< tabs name="CustomResourceDefinition_pruning" >}}
 {{% tab name="apiextensions.k8s.io/v1" %}}
 
 For CustomResourceDefinitions created in `apiextensions.k8s.io/v1`, [structural OpenAPI v3 validation schemas](#specifying-a-structural-schema) are required and pruning is enabled and cannot be disabled (note that CRDs converted from `apiextensions.k8s.io/v1beta1` to `apiextensions.k8s.io/v1` might lack structural schemas, and `spec.preserveUnknownFields` might be `true`).  
@@ -640,7 +640,7 @@ CustomResourceDefinition applies the following validations on the custom object:
 
 Save the CustomResourceDefinition to `resourcedefinition.yaml`:
 
-{{< tabs name="ValidatingWebhookConfiguration_example_2" >}}
+{{< tabs name="CustomResourceDefinition_validation" >}}
 {{% tab name="apiextensions.k8s.io/v1" %}}
 ```yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -897,96 +897,96 @@ CustomResourceDefinition. The following example adds the `Spec`, `Replicas`, and
 columns.
 
 1.  Save the CustomResourceDefinition to `resourcedefinition.yaml`.
-      {{< tabs name="ValidatingWebhookConfiguration_admissionReviewVersions" >}}
+      {{< tabs name="CustomResourceDefinition_printer_columns" >}}
       {{% tab name="apiextensions.k8s.io/v1" %}}
-      ```yaml
-      apiVersion: apiextensions.k8s.io/v1
-      kind: CustomResourceDefinition
-      metadata:
-        name: crontabs.stable.example.com
-      spec:
-        group: stable.example.com
-        scope: Namespaced
-        names:
-          plural: crontabs
-          singular: crontab
-          kind: CronTab
-          shortNames:
-          - ct
-        versions:
-        - name: v1
-          served: true
-          storage: true
-          schema:
-            openAPIV3Schema:
-              type: object
-              properties:
-                spec:
-                  type: object
-                  properties:
-                    cronSpec:
-                      type: string
-                    image:
-                      type: string
-                    replicas:
-                      type: integer
-          additionalPrinterColumns:
-          - name: Spec
-            type: string
-            description: The cron spec defining the interval a CronJob is run
-            jsonPath: .spec.cronSpec
-          - name: Replicas
-            type: integer
-            description: The number of jobs launched by the CronJob
-            jsonPath: .spec.replicas
-          - name: Age
-            type: date
-            jsonPath: .metadata.creationTimestamp
-      ```
-      {{% /tab %}}
-      {{% tab name="apiextensions.k8s.io/v1beta1" %}}
-      ```yaml
-      # Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
-      apiVersion: apiextensions.k8s.io/v1beta1
-      kind: CustomResourceDefinition
-      metadata:
-        name: crontabs.stable.example.com
-      spec:
-        group: stable.example.com
-        version: v1
-        scope: Namespaced
-        names:
-          plural: crontabs
-          singular: crontab
-          kind: CronTab
-          shortNames:
-          - ct
-        validation:
-          openAPIV3Schema:
+```yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: crontabs.stable.example.com
+spec:
+  group: stable.example.com
+  scope: Namespaced
+  names:
+    plural: crontabs
+    singular: crontab
+    kind: CronTab
+    shortNames:
+    - ct
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
             type: object
             properties:
-              spec:
-                type: object
-                properties:
-                  cronSpec:
-                    type: string
-                  image:
-                    type: string
-                  replicas:
-                    type: integer
-        additionalPrinterColumns:
-        - name: Spec
-          type: string
-          description: The cron spec defining the interval a CronJob is run
-          JSONPath: .spec.cronSpec
-        - name: Replicas
-          type: integer
-          description: The number of jobs launched by the CronJob
-          JSONPath: .spec.replicas
-        - name: Age
-          type: date
-          JSONPath: .metadata.creationTimestamp
-      ```
+              cronSpec:
+                type: string
+              image:
+                type: string
+              replicas:
+                type: integer
+    additionalPrinterColumns:
+    - name: Spec
+      type: string
+      description: The cron spec defining the interval a CronJob is run
+      jsonPath: .spec.cronSpec
+    - name: Replicas
+      type: integer
+      description: The number of jobs launched by the CronJob
+      jsonPath: .spec.replicas
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+```
+      {{% /tab %}}
+      {{% tab name="apiextensions.k8s.io/v1beta1" %}}
+```yaml
+# Deprecated in v1.16 in favor of apiextensions.k8s.io/v1
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: crontabs.stable.example.com
+spec:
+  group: stable.example.com
+  version: v1
+  scope: Namespaced
+  names:
+    plural: crontabs
+    singular: crontab
+    kind: CronTab
+    shortNames:
+    - ct
+  validation:
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          type: object
+          properties:
+            cronSpec:
+              type: string
+            image:
+              type: string
+            replicas:
+              type: integer
+  additionalPrinterColumns:
+  - name: Spec
+    type: string
+    description: The cron spec defining the interval a CronJob is run
+    JSONPath: .spec.cronSpec
+  - name: Replicas
+    type: integer
+    description: The number of jobs launched by the CronJob
+    JSONPath: .spec.replicas
+  - name: Age
+    type: date
+    JSONPath: .metadata.creationTimestamp
+```
       {{% /tab %}}
       {{< /tabs >}}
 
@@ -1132,7 +1132,7 @@ In the following example, both status and scale subresources are enabled.
 
 Save the CustomResourceDefinition to `resourcedefinition.yaml`:
 
-{{< tabs name="ValidatingWebhookConfiguration_admissionReviewVersions" >}}
+{{< tabs name="CustomResourceDefinition_scale" >}}
 {{% tab name="apiextensions.k8s.io/v1" %}}
 ```yaml
 apiVersion: apiextensions.k8s.io/v1
@@ -1306,7 +1306,7 @@ and illustrates how to output the custom resource using `kubectl get all`.
 
 Save the following CustomResourceDefinition to `resourcedefinition.yaml`:
 
-{{< tabs name="ValidatingWebhookConfiguration_admissionReviewVersions" >}}
+{{< tabs name="CustomResourceDefinition_categories" >}}
 {{% tab name="apiextensions.k8s.io/v1" %}}
 ```yaml
 apiVersion: apiextensions.k8s.io/v1

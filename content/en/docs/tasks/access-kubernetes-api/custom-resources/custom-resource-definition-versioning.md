@@ -1,7 +1,6 @@
 ---
-title: Versions of CustomResourceDefinitions
+title: Versions in CustomResourceDefinitions
 reviewers:
-- mbohlool
 - sttts
 - liggitt
 content_template: templates/task
@@ -19,7 +18,7 @@ level of your CustomResourceDefinitions or advance your API to a new version wit
 
 {{< include "task-tutorial-prereqs.md" >}} {{< version-check >}}
 
-* Make sure your Kubernetes cluster has a master version of 1.11.0 or higher.
+* Make sure your Kubernetes cluster has a master version of 1.16.0 or higher for `apiextensions.k8s.io/v1`, or 1.11.0 or higher for `apiextensions.k8s.io/v1beta1`.
 
 * Read about [custom resources](/docs/concepts/api-extension/custom-resources/).
 
@@ -29,7 +28,7 @@ level of your CustomResourceDefinitions or advance your API to a new version wit
 
 ## Overview
 
-{{< feature-state state="beta" for_kubernetes_version="1.15" >}}
+{{< feature-state state="stable" for_kubernetes_version="1.16" >}}
 
 The CustomResourceDefinition API supports a `versions` field that you can use to
 support multiple versions of custom resources that you have developed. Versions
@@ -38,7 +37,7 @@ Webhook conversions should follow the [Kubernetes API conventions](https://githu
 Specifically, See the [API change documentation](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api_changes.md) for a set of useful gotchas and suggestions.
 
 {{< note >}}
-Earlier iterations included a `version` field instead of `versions`. The
+In `apiextensions.k8s.io/v1beta1`, there was a `version` field instead of `versions`. The
 `version` field is deprecated and optional, but if it is not empty, it must
 match the first item in the `versions` field.
 {{< /note >}}
@@ -49,6 +48,48 @@ This example shows a CustomResourceDefinition with two versions. For the first
 example, the assumption is all versions share the same schema with no conversion
 between them. The comments in the YAML provide more context.
 
+{{< tabs name="CustomResourceDefinition_versioning_example_1" >}}
+{{% tab name="apiextensions.k8s.io/v1" %}}
+```yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: crontabs.example.com
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: example.com
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+  - name: v1beta1
+    # Each version can be enabled/disabled by Served flag.
+    served: true
+    # One and only one version must be marked as the storage version.
+    storage: true
+  - name: v1
+    served: true
+    storage: false
+  # The conversion section is introduced in Kubernetes 1.13+ with a default value of
+  # None conversion (strategy sub-field set to None).
+  conversion:
+    # None conversion assumes the same schema for all versions and only sets the apiVersion
+    # field of custom resources to the proper value
+    strategy: None
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: crontabs
+    # singular name to be used as an alias on the CLI and for display
+    singular: crontab
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CronTab
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - ct
+```
+{{% /tab %}}
+{{% tab name="admission.k8s.io/v1beta1" %}}
 ```yaml
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -87,6 +128,8 @@ spec:
     shortNames:
     - ct
 ```
+{{% /tab %}}
+{{< /tabs >}}
 
 You can save the CustomResourceDefinition in a YAML file, then use
 `kubectl apply` to create it.
@@ -149,7 +192,7 @@ the version.
 
 ## Webhook conversion
 
-{{< feature-state state="beta" for_kubernetes_version="1.15" >}}
+{{< feature-state state="stable" for_kubernetes_version="1.16" >}}
 
 {{< note >}}
 Webhook conversion is available as beta since 1.15, and as alpha since Kubernetes 1.13. The
@@ -208,6 +251,67 @@ if a different port is used for the service.
 The `None` conversion example can be extended to use the conversion webhook by modifying `conversion`
 section of the `spec`:
 
+{{< tabs name="CustomResourceDefinition_versioning_example_2" >}}
+{{% tab name="apiextensions.k8s.io/v1" %}}
+```yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: crontabs.example.com
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: example.com
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+  - name: v1beta1
+    # Each version can be enabled/disabled by Served flag.
+    served: true
+    # One and only one version must be marked as the storage version.
+    storage: true
+    # Each version can define it's own schema when there is no top-level
+    # schema is defined.
+    schema:
+      openAPIV3Schema:
+        properties:
+          hostPort:
+            type: string
+  - name: v1
+    served: true
+    storage: false
+    schema:
+      openAPIV3Schema:
+        properties:
+          host:
+            type: string
+          port:
+            type: string
+  conversion:
+    # a Webhook strategy instruct API server to call an external webhook for any conversion between custom resources.
+    strategy: Webhook
+    # webhookClientConfig is required when strategy is `Webhook` and it configure the webhook endpoint to be
+    # called by API server.
+    webhookClientConfig:
+      service:
+        namespace: default
+        name: example-conversion-webhook-server
+        path: /crdconvert
+      caBundle: <pem encoded ca cert that signs the server cert used by the webhook>
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: crontabs
+    # singular name to be used as an alias on the CLI and for display
+    singular: crontab
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CronTab
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - ct
+```
+{{% /tab %}}
+{{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -265,6 +369,8 @@ spec:
     shortNames:
     - ct
 ```
+{{% /tab %}}
+{{< /tabs >}}
 
 You can save the CustomResourceDefinition in a YAML file, then use
 `kubectl apply` to apply it.
@@ -309,6 +415,22 @@ Fragments ("#...") and query parameters ("?...") are also not allowed.
 Here is an example of a conversion webhook configured to call a URL
 (and expects the TLS certificate to be verified using system trust roots, so does not specify a caBundle):
 
+{{< tabs name="CustomResourceDefinition_versioning_example_3" >}}
+{{% tab name="apiextensions.k8s.io/v1" %}}
+```yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+...
+spec:
+  ...
+  conversion:
+    strategy: Webhook
+    webhookClientConfig:
+      url: "https://my-webhook.example.com:9443/my-webhook-path"
+...
+```
+{{% /tab %}}
+{{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -321,6 +443,8 @@ spec:
       url: "https://my-webhook.example.com:9443/my-webhook-path"
 ...
 ```
+{{% /tab %}}
+{{< /tabs >}}
 
 ### Service Reference
 
@@ -333,6 +457,27 @@ Here is an example of a webhook that is configured to call a service on port "12
 at the subpath "/my-path", and to verify the TLS connection against the ServerName
 `my-service-name.my-service-namespace.svc` using a custom CA bundle.
 
+{{< tabs name="CustomResourceDefinition_versioning_example_4" >}}
+{{% tab name="apiextensions.k8s.io/v1" %}}
+```yaml
+apiVersion: apiextensions.k8s.io/v1b
+kind: CustomResourceDefinition
+...
+spec:
+  ...
+  conversion:
+    strategy: Webhook
+    webhookClientConfig:
+      service:
+        namespace: my-service-namespace
+        name: my-service-name
+        path: /my-path
+        port: 1234
+      caBundle: "Ci0tLS0tQk...<base64-encoded PEM bundle>...tLS0K"
+...
+```
+{{% /tab %}}
+{{% tab name="apiextensions.k8s.io/v1beta1" %}}
 ```yaml
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -350,6 +495,8 @@ spec:
       caBundle: "Ci0tLS0tQk...<base64-encoded PEM bundle>...tLS0K"
 ...
 ```
+{{% /tab %}}
+{{< /tabs >}}
 
 ## Writing, reading, and updating versioned CustomResourceDefinition objects
 

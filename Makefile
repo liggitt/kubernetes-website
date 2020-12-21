@@ -13,6 +13,8 @@ CONTAINER_RUN     = $(CONTAINER_ENGINE) run --rm --interactive --tty --volume $(
 CCRED=\033[0;31m
 CCEND=\033[0m
 
+CONFIG=config.toml,announcements/config.toml
+
 .PHONY: all build build-preview help serve
 
 help: ## Show this help.
@@ -24,13 +26,13 @@ module-check:
 all: build ## Build site with production settings and put deliverables in ./public
 
 build: module-check ## Build site with production settings and put deliverables in ./public
-	hugo --minify
+	hugo --config $(CONFIG) --minify
 
 build-preview: module-check ## Build site with drafts and future posts enabled
-	hugo --buildDrafts --buildFuture
+	hugo --config $(CONFIG) --buildDrafts --buildFuture
 
 deploy-preview: ## Deploy preview site via netlify
-	hugo --enableGitInfo --buildFuture -b $(DEPLOY_PRIME_URL)
+	hugo --config $(CONFIG) --enableGitInfo --buildFuture -b $(DEPLOY_PRIME_URL)
 
 functions-build:
 	$(NETLIFY_FUNC) build functions-src
@@ -41,10 +43,10 @@ check-headers-file:
 production-build: build check-headers-file ## Build the production site and ensure that noindex headers aren't added
 
 non-production-build: ## Build the non-production site, which adds noindex headers to prevent indexing
-	hugo --enableGitInfo
+	hugo --config $(CONFIG) --enableGitInfo
 
 serve: module-check ## Boot the development server.
-	hugo server --buildFuture
+	hugo --config $(CONFIG) server --buildFuture
 
 docker-image:
 	@echo -e "$(CCRED)**** The use of docker-image is deprecated. Use container-image instead. ****$(CCEND)"
@@ -65,10 +67,10 @@ container-image:
 		--build-arg HUGO_VERSION=$(HUGO_VERSION)
 
 container-build: module-check
-	$(CONTAINER_RUN) --read-only --mount type=tmpfs,destination=/tmp,tmpfs-mode=01777 $(CONTAINER_IMAGE) sh -c "npm ci && hugo --minify"
+	$(CONTAINER_RUN) --read-only --mount type=tmpfs,destination=/tmp,tmpfs-mode=01777 $(CONTAINER_IMAGE) sh -c "npm ci && hugo --config $(CONFIG) --minify"
 
 container-serve: module-check
-	$(CONTAINER_RUN) --read-only --mount type=tmpfs,destination=/tmp,tmpfs-mode=01777 -p 1313:1313 $(CONTAINER_IMAGE) hugo server --buildFuture --bind 0.0.0.0 --destination /tmp/hugo --cleanDestinationDir
+	$(CONTAINER_RUN) --read-only --mount type=tmpfs,destination=/tmp,tmpfs-mode=01777 -p 1313:1313 $(CONTAINER_IMAGE) hugo --config $(CONFIG) server --buildFuture --bind 0.0.0.0 --destination /tmp/hugo --cleanDestinationDir
 
 test-examples:
 	scripts/test_examples.sh install
@@ -83,5 +85,5 @@ docker-internal-linkcheck:
 	$(MAKE) container-internal-linkcheck
 
 container-internal-linkcheck: link-checker-image-pull
-	$(CONTAINER_RUN) $(CONTAINER_IMAGE) hugo --config config.toml,linkcheck-config.toml --buildFuture
+	$(CONTAINER_RUN) $(CONTAINER_IMAGE) hugo --config $(CONFIG),linkcheck-config.toml --buildFuture
 	$(CONTAINER_ENGINE) run --mount type=bind,source=$(CURDIR),target=/test --rm wjdp/htmltest htmltest
